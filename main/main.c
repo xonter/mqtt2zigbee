@@ -27,6 +27,7 @@
 #include "status_led.h"
 #include "wb_driver.h"
 #include "z2m_driver.h"
+#include "status_screen.h"
 
 static const char *TAG = "MAIN";
 static const char *HEALTH_TAG = "HEALTH";
@@ -99,10 +100,41 @@ static void zigbee_attr_bridge(uint8_t endpoint_id, uint16_t cluster, uint16_t a
 }
 
 /* Bridge: Zigbee network join → web server pair page. */
+static volatile bool     s_zb_joined;
+static volatile uint8_t  s_zb_channel;
+static volatile uint16_t s_zb_pan;
+
 static void zigbee_join_bridge(uint8_t channel, uint16_t pan_id, uint16_t short_addr)
 {
+    s_zb_channel = channel;
+    s_zb_pan     = pan_id;
+    s_zb_joined  = true;
     web_server_set_zigbee_info(NULL, pan_id, channel, short_addr);
 }
+
+#if CONFIG_STATUS_SCREEN_GEEK
+/* Collects what the GEEK status screen shows; called from the screen task about once a second. */
+static void screen_snapshot(screen_snapshot_t *s)
+{
+    memset(s, 0, sizeof(*s));
+    s->provisioned = app_config_is_provisioned();
+    s->wifi_up     = wifi_manager_is_connected();
+    wifi_manager_get_sta_ssid(s->sta_ssid, sizeof(s->sta_ssid));
+    const char *ip = wifi_manager_get_ip();
+    if (s->wifi_up && ip) snprintf(s->ip, sizeof(s->ip), "%s", ip);
+    s->mqtt_up = mqtt_client_is_connected();
+    snprintf(s->mqtt_host, sizeof(s->mqtt_host), "%s", app_config_get_mqtt_host());
+    s->zigbee_joined = s_zb_joined;
+    s->zb_channel    = s_zb_channel;
+    s->zb_pan        = s_zb_pan;
+    s->ap_on         = wifi_manager_ap_active();
+    snprintf(s->ap_ssid, sizeof(s->ap_ssid), "ZigbeeGW");
+    const char *user = app_config_get_ui_user(), *pass = app_config_get_ui_pass();
+    snprintf(s->ui_user, sizeof(s->ui_user), "%s", user);
+    bool dflt = !strcmp(user, "admin") && !strcmp(pass, "gateway");
+    snprintf(s->ui_pass, sizeof(s->ui_pass), "%s", dflt ? "gateway" : "(yours)");
+}
+#endif
 
 /* Heavy init runs in its own task — the event loop stack is only 2304 bytes,
    too small for cJSON_Parse + Zigbee task creation. */
@@ -227,6 +259,10 @@ void app_main(void)
     button_handler_init();
     button_handler_set_callback(RECONFIG_TRIGGER, factory_reset_wrapper);
     button_handler_set_short_callback(wifi_mode_toggle);
+
+#if CONFIG_STATUS_SCREEN_GEEK
+    status_screen_start(screen_snapshot);
+#endif
 
     esp_timer_handle_t health_timer;
     esp_timer_create_args_t timer_args = { .callback = health_check_cb, .name = "health" };
