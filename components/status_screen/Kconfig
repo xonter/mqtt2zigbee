@@ -8,21 +8,27 @@ menu "Status screen"
     if STATUS_SCREEN_GEEK
         config STATUS_SCREEN_PIN_CLK
             int "SPI CLK GPIO"
+            range 0 23
             default 1
         config STATUS_SCREEN_PIN_MOSI
             int "SPI MOSI GPIO"
+            range 0 23
             default 2
         config STATUS_SCREEN_PIN_CS
             int "LCD CS GPIO"
+            range 0 23
             default 5
         config STATUS_SCREEN_PIN_DC
             int "LCD DC GPIO"
+            range 0 23
             default 3
         config STATUS_SCREEN_PIN_RST
             int "LCD RST GPIO"
+            range 0 23
             default 4
         config STATUS_SCREEN_PIN_BL
             int "Backlight GPIO"
+            range 0 23
             default 6
         config STATUS_SCREEN_BL_PERCENT
             int "Backlight brightness (%)"

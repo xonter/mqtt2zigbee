@@ -101,14 +101,19 @@ static esp_err_t panel_init(void)
     return ESP_OK;
 }
 
-static void draw(const screen_snapshot_t *sn)
+/* false if a transfer failed or timed out; the caller then retries the whole frame. */
+static bool draw(const screen_snapshot_t *sn)
 {
     for (int y0 = 0; y0 < SCREEN_H; y0 += SCREEN_STRIP_H) {
         int h = SCREEN_H - y0 < SCREEN_STRIP_H ? SCREEN_H - y0 : SCREEN_STRIP_H;
         screen_render_strip(sn, s_strip, y0, h, true);
-        esp_lcd_panel_draw_bitmap(s_panel, 0, y0, SCREEN_W, y0 + h, s_strip);
-        xSemaphoreTake(s_done, pdMS_TO_TICKS(500));
+        if (esp_lcd_panel_draw_bitmap(s_panel, 0, y0, SCREEN_W, y0 + h, s_strip) != ESP_OK) return false;
+        if (xSemaphoreTake(s_done, pdMS_TO_TICKS(500)) != pdTRUE) {
+            xSemaphoreTake(s_done, 0);   /* drop a late completion so it cannot release the next strip early */
+            return false;
+        }
     }
+    return true;
 }
 
 static void screen_task(void *arg)
@@ -118,7 +123,10 @@ static void screen_task(void *arg)
     for (;;) {
         memset(&cur, 0, sizeof cur);
         s_cb(&cur);
-        if (memcmp(&cur, &last, sizeof cur) != 0) { draw(&cur); last = cur; }
+        if (memcmp(&cur, &last, sizeof cur) != 0) {
+            if (draw(&cur)) memcpy(&last, &cur, sizeof cur);   /* memcpy keeps padding bytes identical */
+            else ESP_LOGW(TAG, "draw failed, retrying");
+        }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

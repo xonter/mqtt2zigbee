@@ -84,6 +84,13 @@ int main(void) {
     memset(l.sta_ssid, 'W', 32); memset(l.mqtt_host, 'h', 40); memset(l.ap_ssid, 'A', 32);
     render_full(&l); l.provisioned = false; render_full(&l);
 
+    /* Setup-screen lines must stay inside x < 234 even with maximum-length values. */
+    screen_snapshot_t w = all_up(); w.provisioned = false;
+    memset(w.ap_ssid, 'A', 32); memset(w.ui_user, 'u', 31);
+    render_full(&w);
+    assert(lit(234, 42, SCREEN_W, 58) == 0);   /* WiFi line  */
+    assert(lit(234, 82, SCREEN_W, 98) == 0);   /* Login line */
+
     puts("render tests OK");
     return 0;
 }

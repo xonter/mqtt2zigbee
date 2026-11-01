@@ -128,13 +128,22 @@ static void header(strip_t *s, const screen_snapshot_t *sn)
     rect(s, 0, 34, SCREEN_W, 1, C_LINE);
 }
 
+/* "<prefix><value>" on one line, value truncated so the line ends before x=234. */
+static void kv_line(strip_t *s, int y, const char *prefix, const char *value)
+{
+    char v[32], line[40];
+    int room = (234 - 6) / 8 - (int)strlen(prefix);   /* characters left for the value */
+    screen_fit_text(v, (size_t)room + 1 < sizeof v ? (size_t)room + 1 : sizeof v, value);
+    snprintf(line, sizeof line, "%s%s", prefix, v);
+    text(s, 6, y, line, C_TEXT);
+}
+
 static void setup_screen(strip_t *s, const screen_snapshot_t *sn)
 {
-    char v[25], line[40];
-    screen_fit_text(v, sizeof v, sn->ap_ssid);  snprintf(line, sizeof line, "WiFi: %s", v);  text(s, 6, 42, line, C_TEXT);
+    kv_line(s, 42, "WiFi: ", sn->ap_ssid);
     text(s, 6, 62, "Open: http://192.168.4.1", C_TEXT);
-    screen_fit_text(v, sizeof v, sn->ui_user);  snprintf(line, sizeof line, "Login: %s", v); text(s, 6, 82, line, C_TEXT);
-    screen_fit_text(v, sizeof v, sn->ui_pass);  snprintf(line, sizeof line, "Pass:  %s", v); text(s, 6, 102, line, C_TEXT);
+    kv_line(s, 82, "Login: ", sn->ui_user);
+    kv_line(s, 102, "Pass:  ", sn->ui_pass);
 }
 
 static void row(strip_t *s, int i, icon_t k, bool up, const char *l1, const char *l2)

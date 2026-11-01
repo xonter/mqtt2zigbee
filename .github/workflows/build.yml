@@ -65,10 +65,10 @@ jobs:
         run: |
           ls -R fw
           v="${GITHUB_REF_NAME}"
-          cp fw/firmware-default/build/mqtt2zigbee.bin "mqtt2zigbee-${v}-app.bin"
-          cp fw/firmware-default/build/mqtt2zigbee-merged.bin "mqtt2zigbee-${v}-merged.bin"
-          cp fw/firmware-geek/build_geek/mqtt2zigbee.bin "mqtt2zigbee-${v}-geek-app.bin"
-          cp fw/firmware-geek/build_geek/mqtt2zigbee-geek-merged.bin "mqtt2zigbee-${v}-geek-merged.bin"
+          cp fw/firmware-default/mqtt2zigbee.bin "mqtt2zigbee-${v}-app.bin"
+          cp fw/firmware-default/mqtt2zigbee-merged.bin "mqtt2zigbee-${v}-merged.bin"
+          cp fw/firmware-geek/mqtt2zigbee.bin "mqtt2zigbee-${v}-geek-app.bin"
+          cp fw/firmware-geek/mqtt2zigbee-geek-merged.bin "mqtt2zigbee-${v}-geek-merged.bin"
           sha256sum mqtt2zigbee-${v}-*.bin > SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
