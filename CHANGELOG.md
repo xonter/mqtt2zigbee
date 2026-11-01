@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.0] - 2026-11-01
 
 ### Added
 - Status screen for the Waveshare ESP32-C6-GEEK (separate `-geek` firmware image): setup info
