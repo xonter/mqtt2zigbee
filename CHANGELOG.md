@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Status screen for the Waveshare ESP32-C6-GEEK (separate `-geek` firmware image): setup info
+  while unconfigured, Wi-Fi/MQTT/Zigbee status icons, AP indicator next to the BOOT button.
+
 ## [1.0.1] - 2026-10-26
 
 ### Changed

@@ -60,6 +60,28 @@ RGB LED on GPIO 8 (`STATUS_LED_GPIO`).
 | Operational | — | **off** | Wi-Fi and MQTT connected |
 | Connection error | Red | triple flash every 2 s | Wi-Fi or MQTT connection lost |
 
+## Waveshare ESP32-C6-GEEK (status screen)
+
+The [ESP32-C6-GEEK](https://docs.waveshare.com/ESP32-C6-GEEK) dongle has a 1.14" 240x135 LCD.
+Use the separate **`mqtt2zigbee-<version>-geek-merged.bin`** image from the release to drive it
+(the normal image leaves the screen untouched):
+
+- Not configured: AP name, URL, login and password (the password is shown only while it is still the default).
+- Otherwise: Wi-Fi (SSID, IP), MQTT (broker) and Zigbee (channel, PAN) rows with icons; a slashed
+  grey icon plus "no WiFi" / "no MQTT" / "no Zigbee" when down.
+- Top-right, next to the BOOT button: AP on/off indicator with a `BOOT: on/off` hint.
+
+Build it yourself:
+
+```bash
+idf.py -B build_geek -D SDKCONFIG=sdkconfig.geek \
+  -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.geek" set-target esp32c6 build
+```
+
+> The display pins (CLK 1, MOSI 2, CS 5, DC 3, RST 4, BL 6) and panel offsets come from a
+> third-party pinout and have not been verified on hardware. Adjust them under
+> `idf.py menuconfig` → *Status screen*. Renderer tests: `sh components/status_screen/host_test/run.sh`.
+
 ## Button
 
 BOOT button on GPIO 9:

@@ -10,8 +10,8 @@ only; the default firmware is unchanged.
   `sdkconfig.defaults.geek`; separate release image `mqtt2zigbee-vX-geek-merged.bin`.
 - **No touch** on this board. Only input is BOOT (GPIO 9): short press toggles the AP
   (existing behaviour), 3 s hold = factory reset. The screen shows an AP indicator with a
-  "BOOT: on/off" hint, placed by a Kconfig setting (default bottom-right) near the button.
-- No LVGL. Raw ST7789 init over `esp_lcd` SPI panel IO; strip-based software rendering
+  "BOOT: on/off" hint, fixed at the top-right, where the BOOT button is.
+- No LVGL. ST7789 via core `esp_lcd` (`esp_lcd_new_panel_st7789`); strip-based software rendering
   (~13 KB), built-in ASCII bitmap font, icons drawn from shapes, backlight PWM ~60 %.
 
 ## Component `components/status_screen`

@@ -12,6 +12,17 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - variant: default
+            dir: build
+            sdk: ""
+            suffix: ""
+          - variant: geek
+            dir: build_geek
+            sdk: -D SDKCONFIG=sdkconfig.geek -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.geek"
+            suffix: -geek
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +32,7 @@ jobs:
           esp_idf_version: v5.4.1
           target: esp32c6
           path: .
-          command: idf.py build
+          command: idf.py -B ${{ matrix.dir }} ${{ matrix.sdk }} build
 
       - name: Create merged flash image
         uses: espressif/esp-idf-ci-action@v1
@@ -29,18 +40,14 @@ jobs:
           esp_idf_version: v5.4.1
           target: esp32c6
           path: .
-          command: >-
-            idf.py merge-bin -o mqtt2zigbee-merged.bin
+          command: idf.py -B ${{ matrix.dir }} ${{ matrix.sdk }} merge-bin -o mqtt2zigbee${{ matrix.suffix }}-merged.bin
 
       - uses: actions/upload-artifact@v4
         with:
-          name: firmware
+          name: firmware-${{ matrix.variant }}
           path: |
-            build/mqtt2zigbee.bin
-            build/mqtt2zigbee-merged.bin
-            build/bootloader/bootloader.bin
-            build/partition_table/partition-table.bin
-            build/flasher_args.json
+            ${{ matrix.dir }}/mqtt2zigbee.bin
+            ${{ matrix.dir }}/mqtt2zigbee${{ matrix.suffix }}-merged.bin
           if-no-files-found: error
 
   release:
@@ -52,13 +59,16 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: firmware
+          pattern: firmware-*
           path: fw
       - name: Rename for release
         run: |
+          ls -R fw
           v="${GITHUB_REF_NAME}"
-          cp fw/mqtt2zigbee-merged.bin "mqtt2zigbee-${v}-merged.bin"
-          cp fw/mqtt2zigbee.bin "mqtt2zigbee-${v}-app.bin"
+          cp fw/firmware-default/build/mqtt2zigbee.bin "mqtt2zigbee-${v}-app.bin"
+          cp fw/firmware-default/build/mqtt2zigbee-merged.bin "mqtt2zigbee-${v}-merged.bin"
+          cp fw/firmware-geek/build_geek/mqtt2zigbee.bin "mqtt2zigbee-${v}-geek-app.bin"
+          cp fw/firmware-geek/build_geek/mqtt2zigbee-geek-merged.bin "mqtt2zigbee-${v}-geek-merged.bin"
           sha256sum mqtt2zigbee-${v}-*.bin > SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
