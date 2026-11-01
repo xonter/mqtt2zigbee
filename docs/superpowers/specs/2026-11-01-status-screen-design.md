@@ -17,7 +17,7 @@ only; the default firmware is unchanged.
 ## Component `components/status_screen`
 - `status_screen.h`: `status_screen_start(snapshot_cb)`; snapshot struct
   `{ provisioned, wifi_up, sta_ssid, ip, mqtt_up, mqtt_host, zigbee_joined, zb_channel,
-  zb_pan, ap_on, ap_ssid, ui_user, default_creds }`.
+  zb_pan, ap_on, ap_ssid, ui_user, ui_pass }` (ui_pass = display text).
 - Option off -> header-only inline no-op stubs; no `#ifdef` in callers.
 - Task polls the callback ~1 s, redraws only on change.
 - `main` provides the callback (reads wifi_manager, mqtt client, app_config, zigbee join
