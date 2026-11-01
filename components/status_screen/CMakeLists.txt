@@ -1,0 +1,7 @@
+set(srcs "status_screen.c")
+set(priv_reqs "")
+if(CONFIG_STATUS_SCREEN_GEEK)
+    list(APPEND srcs "screen_render.c")
+    list(APPEND priv_reqs esp_lcd esp_driver_spi esp_driver_ledc esp_driver_gpio freertos)
+endif()
+idf_component_register(SRCS ${srcs} INCLUDE_DIRS "." PRIV_REQUIRES ${priv_reqs})

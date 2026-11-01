@@ -1,0 +1,53 @@
+menu "Status screen"
+    config STATUS_SCREEN_GEEK
+        bool "Waveshare ESP32-C6-GEEK 1.14\" ST7789 status screen"
+        default n
+        help
+            Drive the GEEK's LCD with setup / status information.
+
+    if STATUS_SCREEN_GEEK
+        config STATUS_SCREEN_PIN_CLK
+            int "SPI CLK GPIO"
+            default 1
+        config STATUS_SCREEN_PIN_MOSI
+            int "SPI MOSI GPIO"
+            default 2
+        config STATUS_SCREEN_PIN_CS
+            int "LCD CS GPIO"
+            default 5
+        config STATUS_SCREEN_PIN_DC
+            int "LCD DC GPIO"
+            default 3
+        config STATUS_SCREEN_PIN_RST
+            int "LCD RST GPIO"
+            default 4
+        config STATUS_SCREEN_PIN_BL
+            int "Backlight GPIO"
+            default 6
+        config STATUS_SCREEN_BL_PERCENT
+            int "Backlight brightness (%)"
+            range 5 100
+            default 60
+        config STATUS_SCREEN_BL_ACTIVE_HIGH
+            bool "Backlight is active-high"
+            default y
+        config STATUS_SCREEN_GAP_X
+            int "Panel column offset (after swap_xy)"
+            default 40
+        config STATUS_SCREEN_GAP_Y
+            int "Panel row offset (after swap_xy)"
+            default 52
+        config STATUS_SCREEN_INVERT
+            bool "Invert colours"
+            default y
+        config STATUS_SCREEN_MIRROR_X
+            bool "Mirror X"
+            default n
+        config STATUS_SCREEN_MIRROR_Y
+            bool "Mirror Y"
+            default y
+        config STATUS_SCREEN_SWAP_XY
+            bool "Swap X/Y (landscape)"
+            default y
+    endif
+endmenu

@@ -18,3 +18,7 @@ __pycache__/
 *.pyc
 build.bat
 *.log
+sdkconfig.geek
+components/status_screen/host_test/test_render
+components/status_screen/host_test/*.raw
+components/status_screen/host_test/*.png
