@@ -26,15 +26,36 @@ static void rect(strip_t *s, int x, int y, int w, int h, uint16_t c)
         for (int xx = x; xx < x + w; xx++) put(s, xx, yy, c);
 }
 
+/* Decode one UTF-8 code point (ASCII and 2-byte sequences); advances *p. */
+static unsigned next_cp(const char **p)
+{
+    const unsigned char *u = (const unsigned char *)*p;
+    if (u[0] >= 0xC0 && u[0] < 0xE0 && (u[1] & 0xC0) == 0x80) {
+        *p += 2;
+        return ((unsigned)(u[0] & 0x1F) << 6) | (u[1] & 0x3F);
+    }
+    *p += 1;
+    return u[0];
+}
+
+static const uint8_t *glyph(unsigned cp)
+{
+    if (cp == 0x401) cp = 0x415;                 /* Ё -> Е */
+    if (cp == 0x451) cp = 0x435;                 /* ё -> е */
+    if (cp >= 0x20 && cp <= 0x7E) return font8x16[cp - 0x20];
+    if (cp >= 0x410 && cp <= 0x44F) return font8x16[95 + cp - 0x410];
+    return font8x16['?' - 0x20];
+}
+
 static void text(strip_t *s, int x, int y, const char *str, uint16_t c)
 {
     if (y + 16 <= s->y0 || y >= s->y0 + s->h) return;
-    for (; *str; str++, x += 8) {
-        unsigned char ch = (unsigned char)*str;
-        const uint8_t *g = font8x16[(ch >= 0x20 && ch <= 0x7E) ? ch - 0x20 : '?' - 0x20];
+    while (*str) {
+        const uint8_t *g = glyph(next_cp(&str));
         for (int row = 0; row < 16; row++)
             for (int col = 0; col < 8; col++)
                 if (g[row] & (0x80 >> col)) put(s, x + col, y + row, c);
+        x += 8;
     }
 }
 
@@ -114,43 +135,60 @@ static void icon(strip_t *s, int x, int y, int scale, icon_t k, uint16_t c, bool
     }
 }
 
-static void right_text(strip_t *s, int x_end, int y, const char *str, uint16_t c)
-{
-    text(s, x_end - (int)strlen(str) * 8, y, str, c);
-}
+enum { S_NO_WIFI, S_CONNECTING, S_NO_MQTT, S_NO_ZIGBEE, S_ZIGBEE_CH, S_PAN,
+       S_L_WIFI, S_L_URL, S_L_LOGIN, S_L_PASS, S_AP_ON, S_AP_OFF, S_HINT, S_COUNT };
 
-static void header(strip_t *s, const screen_snapshot_t *sn)
+static const char *const STR[2][S_COUNT] = {
+    { "No WiFi", "Connecting...", "No MQTT", "No Zigbee", "Zigbee, ch %u", "PAN 0x%04X",
+      "WiFi:", "URL:", "Login:", "Pass:", "AP on", "AP off", "BOOT: on/off" },
+    { "Нет WiFi", "Подключение...", "Нет MQTT", "Нет Zigbee", "Zigbee, кан. %u", "PAN 0x%04X",
+      "Сеть:", "Адрес:", "Логин:", "Пароль:", "AP вкл", "AP выкл", "BOOT: вкл/выкл" },
+};
+
+static const char *tr(const screen_snapshot_t *sn, int id) { return STR[sn->lang == 1][id]; }
+
+static void header(strip_t *s)
 {
     text(s, 6, 2, "mqtt2zigbee", C_TEXT);
-    icon(s, 218, 2, 1, ICON_AP, sn->ap_on ? C_OK : C_DIM, !sn->ap_on);
-    right_text(s, 214, 2, sn->ap_on ? "AP on" : "AP off", sn->ap_on ? C_OK : C_DIM);
-    right_text(s, 234, 18, "BOOT: on/off", C_HINT);
-    rect(s, 0, 34, SCREEN_W, 1, C_LINE);
+    rect(s, 0, 19, SCREEN_W, 1, C_LINE);
 }
 
-/* "<prefix><value>" on one line, value truncated so the line ends before x=234. */
-static void kv_line(strip_t *s, int y, const char *prefix, const char *value)
+/* Bottom-left, next to the BOOT button. */
+static void footer(strip_t *s, const screen_snapshot_t *sn)
 {
-    char v[32], line[40];
-    int room = (234 - 6) / 8 - (int)strlen(prefix);   /* characters left for the value */
+    rect(s, 0, 116, SCREEN_W, 1, C_LINE);
+    icon(s, 6, 118, 1, ICON_AP, sn->ap_on ? C_OK : C_DIM, !sn->ap_on);
+    const char *st = tr(sn, sn->ap_on ? S_AP_ON : S_AP_OFF);
+    text(s, 26, 118, st, sn->ap_on ? C_OK : C_DIM);
+    text(s, 26 + 8 * 8, 118, tr(sn, S_HINT), C_HINT);
+}
+
+#define VALUE_X 70   /* value column; labels are at x=6 */
+
+/* "<label>   <value>" on one line, value truncated so the line ends before x=234. */
+static void kv_line(strip_t *s, int y, const char *label, const char *value)
+{
+    char v[32];
+    int room = (234 - VALUE_X) / 8;               /* characters left for the value */
     screen_fit_text(v, (size_t)room + 1 < sizeof v ? (size_t)room + 1 : sizeof v, value);
-    snprintf(line, sizeof line, "%s%s", prefix, v);
-    text(s, 6, y, line, C_TEXT);
+    text(s, 6, y, label, C_DIM);
+    text(s, VALUE_X, y, v, C_TEXT);
 }
 
 static void setup_screen(strip_t *s, const screen_snapshot_t *sn)
 {
-    kv_line(s, 42, "WiFi: ", sn->ap_ssid);
-    text(s, 6, 62, "Open: http://192.168.4.1", C_TEXT);
-    kv_line(s, 82, "Login: ", sn->ui_user);
-    kv_line(s, 102, "Pass:  ", sn->ui_pass);
+    kv_line(s, 28, tr(sn, S_L_WIFI), sn->ap_ssid);
+    kv_line(s, 50, tr(sn, S_L_URL), "http://192.168.4.1");
+    kv_line(s, 72, tr(sn, S_L_LOGIN), sn->ui_user);
+    kv_line(s, 94, tr(sn, S_L_PASS), sn->ui_pass);
 }
 
+/* One line is centred on the icon, two lines fill its height. */
 static void row(strip_t *s, int i, icon_t k, bool up, const char *l1, const char *l2)
 {
-    int y = 36 + 33 * i;
+    int y = 21 + 31 * i;
     icon(s, 6, y, 2, k, up ? C_OK : C_DIM, !up);
-    text(s, 46, y, l1, up ? C_TEXT : C_DIM);
+    text(s, 46, l2 ? y : y + 8, l1, up ? C_TEXT : C_DIM);
     if (l2) text(s, 46, y + 16, l2, C_DIM);
 }
 
@@ -162,22 +200,23 @@ static void status_body(strip_t *s, const screen_snapshot_t *sn)
         screen_fit_text(b, sizeof b, sn->ip);
         row(s, 0, ICON_WIFI, true, a, b);
     } else {
-        row(s, 0, ICON_WIFI, false, "no WiFi", sn->provisioned ? "connecting..." : NULL);
+        row(s, 0, ICON_WIFI, false, tr(sn, S_NO_WIFI), sn->provisioned ? tr(sn, S_CONNECTING) : NULL);
     }
 
     if (sn->mqtt_up) {
-        screen_fit_text(a, sizeof a, sn->mqtt_host);
-        row(s, 1, ICON_MQTT, true, a, "MQTT connected");
+        screen_fit_text(a, sizeof a - 6, sn->mqtt_host);
+        snprintf(line, sizeof line, "MQTT: %s", a);
+        row(s, 1, ICON_MQTT, true, line, NULL);
     } else {
-        row(s, 1, ICON_MQTT, false, "no MQTT", NULL);
+        row(s, 1, ICON_MQTT, false, tr(sn, S_NO_MQTT), NULL);
     }
 
     if (sn->zigbee_joined) {
-        snprintf(line, sizeof line, "Zigbee ch %u", sn->zb_channel);
-        snprintf(b, sizeof b, "PAN 0x%04X", sn->zb_pan);
+        snprintf(line, sizeof line, tr(sn, S_ZIGBEE_CH), sn->zb_channel);
+        snprintf(b, sizeof b, tr(sn, S_PAN), sn->zb_pan);
         row(s, 2, ICON_ZIGBEE, true, line, b);
     } else {
-        row(s, 2, ICON_ZIGBEE, false, "no Zigbee", NULL);
+        row(s, 2, ICON_ZIGBEE, false, tr(sn, S_NO_ZIGBEE), NULL);
     }
 }
 
@@ -185,6 +224,7 @@ void screen_render_strip(const screen_snapshot_t *sn, uint16_t *px, int y0, int 
 {
     strip_t s = { px, y0, h, swap_bytes };
     rect(&s, 0, y0, SCREEN_W, h, C_BG);
-    header(&s, sn);
+    header(&s);
+    footer(&s, sn);
     if (!sn->provisioned) setup_screen(&s, sn); else status_body(&s, sn);
 }

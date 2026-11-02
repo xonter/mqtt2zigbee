@@ -1,6 +1,6 @@
 from PIL import Image
 import struct
-for n in ("status_up", "status_down", "setup"):
+for n in ("status_up", "status_down", "setup", "status_ru"):
     d = open(n + ".raw", "rb").read()
     px = struct.unpack("<%dH" % (240 * 135), d)
     im = Image.new("RGB", (240, 135))

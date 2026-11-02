@@ -13,6 +13,7 @@ typedef struct {
     bool     zigbee_joined;
     uint8_t  zb_channel;
     uint16_t zb_pan;
+    uint8_t  lang;             /* 0 = English, 1 = Russian */
     bool     ap_on;
     char     ap_ssid[33];
     char     ui_user[32];

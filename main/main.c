@@ -23,6 +23,7 @@
 #include "mqtt_client_wrapper.h"
 #include "zigbee_coordinator.h"
 #include "web_server.h"
+#include "locale.h"
 #include "button_handler.h"
 #include "status_led.h"
 #include "wb_driver.h"
@@ -127,6 +128,7 @@ static void screen_snapshot(screen_snapshot_t *s)
     s->zigbee_joined = s_zb_joined;
     s->zb_channel    = s_zb_channel;
     s->zb_pan        = s_zb_pan;
+    s->lang          = (uint8_t)locale_get();
     s->ap_on         = wifi_manager_ap_active();
     snprintf(s->ap_ssid, sizeof(s->ap_ssid), "ZigbeeGW");
     const char *user = app_config_get_ui_user(), *pass = app_config_get_ui_pass();

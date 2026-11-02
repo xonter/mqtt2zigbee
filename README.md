@@ -69,7 +69,7 @@ Use the separate **`mqtt2zigbee-<version>-geek-merged.bin`** image from the rele
 - Not configured: AP name, URL, login and password (the password is shown only while it is still the default).
 - Otherwise: Wi-Fi (SSID, IP), MQTT (broker) and Zigbee (channel, PAN) rows with icons; a slashed
   grey icon plus "no WiFi" / "no MQTT" / "no Zigbee" when down.
-- Top-right, next to the BOOT button: AP on/off indicator with a `BOOT: on/off` hint.
+- Bottom-left, next to the BOOT button: AP on/off indicator with a `BOOT: on/off` hint.
 
 Build it yourself:
 

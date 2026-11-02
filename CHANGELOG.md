@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- GEEK status screen: messages follow the web UI language (English/Russian, Cyrillic font added),
+  start with a capital letter ("No WiFi"), use one line where possible, and the AP indicator with
+  the BOOT hint moved to the bottom-left corner next to the button.
+
 ## [1.1.0] - 2026-11-01
 
 ### Added
