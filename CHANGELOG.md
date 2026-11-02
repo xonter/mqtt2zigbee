@@ -2,7 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- Captive portal on the setup AP: a DNS server answers every name with 192.168.4.1 and connectivity
+  probes are redirected to the setup page, so phones open it automatically.
+
 ### Changed
+- A changed password is shown on the GEEK screen as `[yours]` / `[установлен]`.
 - GEEK status screen: messages follow the web UI language (English/Russian, Cyrillic font added),
   start with a capital letter ("No WiFi"), use one line where possible, and the AP indicator with
   the BOOT hint moved to the bottom-left corner next to the button.

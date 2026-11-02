@@ -136,13 +136,13 @@ static void icon(strip_t *s, int x, int y, int scale, icon_t k, uint16_t c, bool
 }
 
 enum { S_NO_WIFI, S_CONNECTING, S_NO_MQTT, S_NO_ZIGBEE, S_ZIGBEE_CH, S_PAN,
-       S_L_WIFI, S_L_URL, S_L_LOGIN, S_L_PASS, S_AP_ON, S_AP_OFF, S_HINT, S_COUNT };
+       S_L_WIFI, S_L_URL, S_L_LOGIN, S_L_PASS, S_PASS_SET, S_AP_ON, S_AP_OFF, S_HINT, S_COUNT };
 
 static const char *const STR[2][S_COUNT] = {
     { "No WiFi", "Connecting...", "No MQTT", "No Zigbee", "Zigbee, ch %u", "PAN 0x%04X",
-      "WiFi:", "URL:", "Login:", "Pass:", "AP on", "AP off", "BOOT: on/off" },
+      "WiFi:", "URL:", "Login:", "Pass:", "[yours]", "AP on", "AP off", "BOOT: on/off" },
     { "Нет WiFi", "Подключение...", "Нет MQTT", "Нет Zigbee", "Zigbee, кан. %u", "PAN 0x%04X",
-      "Сеть:", "Адрес:", "Логин:", "Пароль:", "AP вкл", "AP выкл", "BOOT: вкл/выкл" },
+      "Сеть:", "Адрес:", "Логин:", "Пароль:", "[установлен]", "AP вкл", "AP выкл", "BOOT: вкл/выкл" },
 };
 
 static const char *tr(const screen_snapshot_t *sn, int id) { return STR[sn->lang == 1][id]; }
@@ -180,7 +180,12 @@ static void setup_screen(strip_t *s, const screen_snapshot_t *sn)
     kv_line(s, 28, tr(sn, S_L_WIFI), sn->ap_ssid);
     kv_line(s, 50, tr(sn, S_L_URL), "http://192.168.4.1");
     kv_line(s, 72, tr(sn, S_L_LOGIN), sn->ui_user);
-    kv_line(s, 94, tr(sn, S_L_PASS), sn->ui_pass);
+    if (sn->pass_custom) {   /* translated placeholder: not user text, so no ASCII filtering */
+        text(s, 6, 94, tr(sn, S_L_PASS), C_DIM);
+        text(s, VALUE_X, 94, tr(sn, S_PASS_SET), C_TEXT);
+    } else {
+        kv_line(s, 94, tr(sn, S_L_PASS), sn->ui_pass);
+    }
 }
 
 /* One line is centred on the icon, two lines fill its height. */

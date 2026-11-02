@@ -3,7 +3,9 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "nvs_flash.h"
+#include "esp_netif.h"
 #include "wifi_manager.h"
+#include "captive_dns.h"
 
 static const char *TAG = "WIFI_MANAGER";
 static bool s_connected     = false;
@@ -11,9 +13,29 @@ static bool s_auto_connect  = false;   /* only reconnect when we have a valid ST
 static char s_ip[16] = {0};
 static void (*s_event_handler)(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) = NULL;
 
+/* Hand out the AP address as DNS server so clients ask our captive DNS. */
+static void ap_offer_dns(void)
+{
+    esp_netif_t *ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+    if (!ap) return;
+    esp_netif_dns_info_t dns = {0};
+    dns.ip.type = ESP_IPADDR_TYPE_V4;
+    dns.ip.u_addr.ip4.addr = esp_ip4addr_aton("192.168.4.1");
+    uint8_t offer = 1;
+    esp_netif_dhcps_stop(ap);
+    esp_netif_set_dns_info(ap, ESP_NETIF_DNS_MAIN, &dns);
+    esp_netif_dhcps_option(ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &offer, sizeof offer);
+    esp_netif_dhcps_start(ap);
+}
+
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_START) {
+        ap_offer_dns();
+        captive_dns_start();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STOP) {
+        captive_dns_stop();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         if (s_auto_connect) esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         s_connected = false;

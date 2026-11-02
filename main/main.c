@@ -134,7 +134,8 @@ static void screen_snapshot(screen_snapshot_t *s)
     const char *user = app_config_get_ui_user(), *pass = app_config_get_ui_pass();
     snprintf(s->ui_user, sizeof(s->ui_user), "%s", user);
     bool dflt = !strcmp(user, "admin") && !strcmp(pass, "gateway");
-    snprintf(s->ui_pass, sizeof(s->ui_pass), "%s", dflt ? "gateway" : "(yours)");
+    s->pass_custom = !dflt;
+    if (dflt) snprintf(s->ui_pass, sizeof(s->ui_pass), "gateway");
 }
 #endif
 

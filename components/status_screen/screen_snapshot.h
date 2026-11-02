@@ -17,6 +17,7 @@ typedef struct {
     bool     ap_on;
     char     ap_ssid[33];
     char     ui_user[32];
-    char     ui_pass[16];      /* text to display: the default password, or "(yours)" */
+    char     ui_pass[16];      /* the default password; empty when pass_custom */
+    bool     pass_custom;      /* password was changed: show a placeholder, never the value */
 } screen_snapshot_t;
 #endif

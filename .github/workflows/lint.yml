@@ -27,3 +27,9 @@ jobs:
               -o /tmp/test_render components/status_screen/host_test/test_render.c \
               components/status_screen/screen_render.c -lm
           cd components/status_screen/host_test && /tmp/test_render
+      - name: Captive DNS reply tests
+        run: |
+          gcc -std=c11 -Wall -Wextra -Werror -O1 -fsanitize=address,undefined \
+              -o /tmp/test_dns components/wifi_manager/host_test/test_dns.c \
+              components/wifi_manager/dns_reply.c
+          /tmp/test_dns

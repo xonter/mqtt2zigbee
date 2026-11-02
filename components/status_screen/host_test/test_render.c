@@ -43,7 +43,7 @@ int main(void) {
     render_full(&u);
     assert(lit(6, 94, 234, 110) > 50);
     int a = lit(6, 94, 234, 110);
-    strcpy(u.ui_pass, "(yours)");
+    u.pass_custom = true; u.ui_pass[0] = 0;
     render_full(&u);
     assert(lit(6, 94, 234, 110) != a);
     dump("setup.raw");

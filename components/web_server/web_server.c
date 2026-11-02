@@ -2568,6 +2568,20 @@ static const httpd_uri_t s_uris[] = {
 };
 #define URI_COUNT (sizeof(s_uris) / sizeof(s_uris[0]))
 
+/* Captive portal: OS connectivity probes (generate_204, hotspot-detect.html, ...) arrive with a
+   hostname in Host and hit no handler; send them to the setup page. Requests by IP stay 404. */
+static esp_err_t not_found_handler(httpd_req_t *req, httpd_err_code_t err)
+{
+    char host[64] = "";
+    httpd_req_get_hdr_value_str(req, "Host", host, sizeof host);
+    bool by_name = false;
+    for (const char *c = host; *c && *c != ':'; c++)
+        if ((*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z')) by_name = true;
+    if (by_name && wifi_manager_ap_active()) return send_redirect(req, "http://192.168.4.1/");
+    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");
+    return ESP_OK;
+}
+
 void web_server_start(uint16_t port)
 {
     if (s_server) return;
@@ -2589,6 +2603,7 @@ void web_server_start(uint16_t port)
     }
     for (size_t i = 0; i < URI_COUNT; i++)
         httpd_register_uri_handler(s_server, &s_uris[i]);
+    httpd_register_err_handler(s_server, HTTPD_404_NOT_FOUND, not_found_handler);
 
     ESP_LOGI(TAG, "Web server started on port %d (%zu handlers, free heap: %lu)",
              port, URI_COUNT, esp_get_free_heap_size());
