@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-11-02
 
 ### Added
 - Captive portal on the setup AP: a DNS server answers every name with 192.168.4.1 and connectivity
