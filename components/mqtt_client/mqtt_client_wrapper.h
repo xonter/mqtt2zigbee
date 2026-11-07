@@ -7,6 +7,7 @@
 
 void mqtt_client_start(void);
 void mqtt_client_stop(void);
+void mqtt_client_restart(void);   /* stop, then start with the saved broker settings */
 esp_err_t mqtt_client_publish(const char *topic, const char *data, int qos, int retain);
 esp_err_t mqtt_client_subscribe(const char *topic, int qos);
 void mqtt_client_set_message_handler(void (*handler)(const char *topic, const char *data, int len));

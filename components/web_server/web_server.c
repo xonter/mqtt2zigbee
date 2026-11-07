@@ -991,6 +991,7 @@ static esp_err_t mqtt_post_handler(httpd_req_t *req)
     if (!client_id[0]) snprintf(client_id, sizeof(client_id), "zigbee_gw_01");
     app_config_save_mqtt(host, (uint16_t)port, false,
                          client_id, username, password);
+    mqtt_client_restart();   /* apply now; the client was started at boot with the old settings */
     return send_redirect(req, "/devices");
 }
 

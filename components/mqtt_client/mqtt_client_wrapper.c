@@ -54,6 +54,14 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             ESP_LOGI(TAG, "MQTT disconnected");
             if (s_connect_callback) s_connect_callback(false);
             break;
+        case MQTT_EVENT_ERROR:
+            if (event->error_handle) {
+                ESP_LOGW(TAG, "MQTT error: type=%d connack=%d sock_errno=%d",
+                         event->error_handle->error_type,
+                         event->error_handle->connect_return_code,
+                         event->error_handle->esp_transport_sock_errno);
+            }
+            break;
         case MQTT_EVENT_DATA: {
             char topic_str[256] = {0};
             int tlen = event->topic_len < 255 ? event->topic_len : 255;
@@ -145,6 +153,12 @@ void mqtt_client_start(void)
     esp_mqtt_client_register_event(s_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(s_client);
     ESP_LOGI(TAG, "MQTT client started: %s (free heap: %lu)", uri, esp_get_free_heap_size());
+}
+
+void mqtt_client_restart(void)
+{
+    mqtt_client_stop();
+    mqtt_client_start();
 }
 
 void mqtt_client_stop(void)
@@ -260,6 +274,7 @@ bool mqtt_client_test_connection(const char *host, int port, bool use_tls,
             mqtt_client_stop();
             s_client = NULL;
             s_connected = false;
+            mqtt_client_start();   /* the scan replaced the main client: bring it back */
             return true;
         }
     }
@@ -267,6 +282,7 @@ bool mqtt_client_test_connection(const char *host, int port, bool use_tls,
     mqtt_client_stop();
     s_client = NULL;
     s_connected = false;
+    mqtt_client_start();
     return false;
 }
 

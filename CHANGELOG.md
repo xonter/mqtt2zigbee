@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- MQTT stayed "not connected" after saving broker settings in the web UI (the client was only started at
+  boot with the old settings) and after using device discovery (the scan replaced the main client and
+  never restored it). Both now (re)start the client with the saved settings; MQTT errors are logged.
+
 ## [1.2.0] - 2026-11-02
 
 ### Added
