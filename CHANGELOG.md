@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.1] - 2026-11-07
 
 ### Fixed
 - MQTT stayed "not connected" after saving broker settings in the web UI (the client was only started at
