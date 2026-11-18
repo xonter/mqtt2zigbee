@@ -73,7 +73,6 @@ static esp_err_t wb_window_covering_handle_zigbee(void *zcl_cmd, void *device_da
     }
 
     char topic[160];
-    size_t n = strlen(data->position_topic);
     const char *slash = strrchr(data->position_topic, '/');
     if (!slash) return ESP_ERR_INVALID_ARG;
     size_t prefix_len = (size_t)(slash - data->position_topic);
