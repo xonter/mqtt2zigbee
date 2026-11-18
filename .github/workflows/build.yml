@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/dooya-window-covering]
     tags: ["v*"]
   pull_request:
 
