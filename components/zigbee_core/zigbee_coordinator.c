@@ -337,12 +337,20 @@ static void zigbee_main_task(void *arg)
     for (unsigned ep = 1; ep < 256; ep++) {
         if (s_pending_covering_position_valid[ep]) {
             uint8_t position = s_pending_covering_position[ep];
-            esp_zb_lock_acquire(portMAX_DELAY);
-            esp_zb_zcl_set_attribute_val(ep, 0x0102, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-                ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
-                &position, false);
-            esp_zb_lock_release();
-            s_pending_covering_position_valid[ep] = false;
+            if (esp_zb_lock_acquire(portMAX_DELAY)) {
+                esp_zb_zcl_status_t status = esp_zb_zcl_set_attribute_val(
+                    ep, 0x0102, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
+                    &position, false);
+                esp_zb_lock_release();
+                if (status == ESP_ZB_ZCL_STATUS_SUCCESS) {
+                    s_pending_covering_position_valid[ep] = false;
+                } else {
+                    ESP_LOGW(TAG, "Could not restore Window Covering position for ep=%u: %d", ep, status);
+                }
+            } else {
+                ESP_LOGW(TAG, "Could not lock Zigbee stack to restore Window Covering position for ep=%u", ep);
+            }
         }
     }
     esp_zb_stack_main_loop();   /* blocks here — runs the Zigbee host loop */
