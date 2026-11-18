@@ -76,11 +76,11 @@ static esp_err_t wb_window_covering_handle_zigbee(void *zcl_cmd, void *device_da
     const char *slash = strrchr(data->position_topic, '/');
     if (!slash) return ESP_ERR_INVALID_ARG;
     size_t prefix_len = (size_t)(slash - data->position_topic);
-    if (prefix_len + strlen(control) + 1 >= sizeof(topic)) return ESP_ERR_INVALID_SIZE;
-    memcpy(topic, data->position_topic, prefix_len);
-    topic[prefix_len] = '/';
-    strcpy(topic + prefix_len + 1, control);
+    int written = snprintf(topic, sizeof(topic), "%.*s/%s/on",
+                            (int)prefix_len, data->position_topic, control);
+    if (written < 0 || written >= (int)sizeof(topic)) return ESP_ERR_INVALID_SIZE;
 
+    /* Wiren Board actuators accept commands on the dedicated <control>/on topic. */
     esp_err_t err = mqtt_client_publish(topic, value, 1, 0);
     ESP_LOGI(TAG, "Zigbee command -> WB %s = %s (%s)", topic, value, esp_err_to_name(err));
     return err;
