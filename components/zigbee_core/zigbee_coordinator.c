@@ -173,6 +173,7 @@ static void add_cluster_to_list(esp_zb_cluster_list_t *cluster_list, uint16_t cl
     } else if (cluster_id == 0x0102) {
         esp_zb_window_covering_cluster_cfg_t cfg = {
             .covering_type = ESP_ZB_ZCL_ATTR_WINDOW_COVERING_TYPE_ROLLERSHADE,
+            .covering_status = ESP_ZB_ZCL_WINDOW_COVERING_CONFIG_STATUS_DEFAULT_VALUE,
             .covering_mode = 0,
         };
         esp_zb_attribute_list_t *attr = esp_zb_window_covering_cluster_create(&cfg);
