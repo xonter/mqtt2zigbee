@@ -85,6 +85,7 @@ void device_drivers_init(void)
     extern void driver_wb_switch_register(void);
     extern void driver_wb_sensor_register(void);
     extern void driver_wb_range_register(void);
+    extern void driver_wb_window_covering_register(void);
     extern void driver_wb_text_register(void);
     extern void driver_z2m_register(void);
 
@@ -97,6 +98,7 @@ void device_drivers_init(void)
     driver_wb_switch_register();
     driver_wb_sensor_register();
     driver_wb_range_register();
+    driver_wb_window_covering_register();
     driver_wb_text_register();
     driver_z2m_register();
 
