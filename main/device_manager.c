@@ -151,9 +151,6 @@ esp_err_t device_manager_add_device(uint8_t endpoint_id, const char *device_type
         /* WB publishes the current control value on the control topic itself.
          * Subscribe to it so Position changes are reflected in Zigbee. */
         mqtt_client_subscribe(topic, 1);
-        char set_topic[160];
-        snprintf(set_topic, sizeof(set_topic), "%s/set", topic);
-        mqtt_client_subscribe(set_topic, 1);
     } else
     // Subscribe to MQTT command topic for writable (actuator) devices
     if (!driver->iface->readonly) {
@@ -224,7 +221,14 @@ esp_err_t device_manager_handle_mqtt_message(const char *topic, const char *payl
         char full_topic[160] = {0};
         snprintf(full_topic, sizeof(full_topic), "%s/set", s_devices[i].topic);
 
-        if (strcmp(topic, s_devices[i].topic) == 0 || strcmp(topic, full_topic) == 0) {
+        bool topic_match = (strcmp(topic, s_devices[i].topic) == 0);
+        /* Window-covering state must come from the WB control topic itself,
+         * never from a synthetic /set command topic. */
+        if (strcmp(s_devices[i].device_type, "wb_window_covering") != 0 &&
+            strcmp(topic, full_topic) == 0) {
+            topic_match = true;
+        }
+        if (topic_match) {
             if (s_devices[i].driver && s_devices[i].driver->iface->handle_mqtt) {
                 s_devices[i].driver->iface->handle_mqtt(payload, s_devices[i].device_data);
                 return ESP_OK;
