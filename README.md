@@ -164,3 +164,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Security issues: [SECURITY.md](SECURITY.
 
 MIT — see [LICENSE](LICENSE). `components/esp-zigbee-lib` is © Espressif Systems under
 Apache-2.0 (see its own `LICENSE`).
+
+<!-- CI build trigger: native Dooya82 Window Covering firmware validation -->
