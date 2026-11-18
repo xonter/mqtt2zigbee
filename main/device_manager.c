@@ -147,6 +147,13 @@ esp_err_t device_manager_add_device(uint8_t endpoint_id, const char *device_type
             strcpy(slash + 1, "+");
         }
         mqtt_client_subscribe(base, 0);
+    } else if (strcmp(device_type, "wb_window_covering") == 0) {
+        /* WB publishes the current control value on the control topic itself.
+         * Subscribe to it so Position changes are reflected in Zigbee. */
+        mqtt_client_subscribe(topic, 1);
+        char set_topic[160];
+        snprintf(set_topic, sizeof(set_topic), "%s/set", topic);
+        mqtt_client_subscribe(set_topic, 1);
     } else
     // Subscribe to MQTT command topic for writable (actuator) devices
     if (!driver->iface->readonly) {
