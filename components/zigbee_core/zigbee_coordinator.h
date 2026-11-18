@@ -14,9 +14,11 @@ typedef void (*zigbee_attr_report_cb_t)(uint8_t endpoint_id, uint16_t cluster,
 
 /* Called when the device successfully joins a Zigbee network. */
 typedef void (*zigbee_network_join_cb_t)(uint8_t channel, uint16_t pan_id, uint16_t short_addr);
+typedef void (*zigbee_window_covering_cmd_cb_t)(uint8_t endpoint_id, const void *message);
 
 void zigbee_coordinator_set_attr_report_callback(zigbee_attr_report_cb_t cb);
 void zigbee_coordinator_set_network_join_callback(zigbee_network_join_cb_t cb);
+void zigbee_coordinator_set_window_covering_cmd_callback(zigbee_window_covering_cmd_cb_t cb);
 
 /* Set manufacturer name and model identifier that will be embedded in the
    Basic cluster of the NEXT endpoint created by zigbee_coordinator_add_*_endpoint.
@@ -40,6 +42,7 @@ esp_err_t zigbee_coordinator_add_contact_endpoint(uint8_t endpoint_id);
 esp_err_t zigbee_coordinator_add_rgb_light_endpoint(uint8_t endpoint_id);
 esp_err_t zigbee_coordinator_add_analog_input_endpoint(uint8_t endpoint_id);
 esp_err_t zigbee_coordinator_add_level_endpoint(uint8_t endpoint_id);
+esp_err_t zigbee_coordinator_add_window_covering_endpoint(uint8_t endpoint_id);
 
 esp_err_t zigbee_coordinator_set_onoff(uint8_t endpoint_id, bool on);
 esp_err_t zigbee_coordinator_set_rgb_light(uint8_t endpoint_id, bool on, uint8_t brightness,
@@ -50,5 +53,6 @@ esp_err_t zigbee_coordinator_set_pressure(uint8_t endpoint_id, float hpa);
 esp_err_t zigbee_coordinator_set_contact(uint8_t endpoint_id, bool open);
 esp_err_t zigbee_coordinator_set_analog_input(uint8_t endpoint_id, float value);
 esp_err_t zigbee_coordinator_set_level(uint8_t endpoint_id, uint8_t level);
+esp_err_t zigbee_coordinator_set_window_covering_position(uint8_t endpoint_id, uint8_t zigbee_percent);
 
 #endif

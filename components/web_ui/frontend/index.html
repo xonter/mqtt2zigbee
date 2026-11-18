@@ -228,6 +228,10 @@
                                 </select>
                             </div>
                             
+                            <div v-if="device.deviceType === 'wb_window_covering'" class="alert alert-info py-2 small">
+                                Select the Wiren Board <strong>Position</strong> control topic for this device. Open, Close and Stop controls are detected from the same device automatically.
+                                WB position 100% is fully open.
+                            </div>
                             <div v-if="device.deviceType && getDriverProperties(device.deviceType).length > 0" class="mb-3">
                                 <label class="form-label">Driver Properties</label>
                                 <div v-for="prop in getDriverProperties(device.deviceType)" :key="prop.name" class="mb-2">

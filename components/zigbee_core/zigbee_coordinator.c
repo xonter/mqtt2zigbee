@@ -9,6 +9,8 @@
 #include "esp_zigbee_attribute.h"
 #include "zcl/esp_zigbee_zcl_basic.h"
 #include "zcl/esp_zigbee_zcl_analog_input.h"
+#include "zcl/esp_zigbee_zcl_window_covering.h"
+#include "zcl/esp_zigbee_zcl_command.h"
 #include "zigbee_coordinator.h"
 
 static const char *TAG = "ZIGBEE_COORD";
@@ -16,7 +18,10 @@ static const char *TAG = "ZIGBEE_COORD";
 static esp_zb_ep_list_t *s_ep_list = NULL;
 static zigbee_attr_report_cb_t  s_attr_report_cb  = NULL;
 static zigbee_network_join_cb_t s_network_join_cb = NULL;
+static zigbee_window_covering_cmd_cb_t s_window_covering_cmd_cb = NULL;
 static bool s_zb_started = false;
+static uint8_t s_pending_covering_position[256];
+static bool s_pending_covering_position_valid[256];
 static void (*s_endpoint_setup_cb)(void) = NULL;
 
 /* Per-endpoint Basic cluster identity set by zigbee_coordinator_set_basic_info()
@@ -32,6 +37,11 @@ void zigbee_coordinator_set_attr_report_callback(zigbee_attr_report_cb_t cb)
 void zigbee_coordinator_set_network_join_callback(zigbee_network_join_cb_t cb)
 {
     s_network_join_cb = cb;
+}
+
+void zigbee_coordinator_set_window_covering_cmd_callback(zigbee_window_covering_cmd_cb_t cb)
+{
+    s_window_covering_cmd_cb = cb;
 }
 
 void zigbee_coordinator_set_basic_info(const char *mfr_name, const char *model_id)
@@ -70,6 +80,15 @@ static esp_err_t zigbee_action_callback(esp_zb_core_action_callback_id_t callbac
             s_attr_report_cb(msg->info.dst_endpoint, msg->info.cluster, msg->attribute.id,
                              msg->attribute.data.value, msg->attribute.data.size,
                              (uint8_t)msg->attribute.data.type);
+        }
+        break;
+    }
+    case ESP_ZB_CORE_WINDOW_COVERING_MOVEMENT_CB_ID: {
+        const esp_zb_zcl_window_covering_movement_message_t *msg =
+            (const esp_zb_zcl_window_covering_movement_message_t *)message;
+        if (msg->info.status == ESP_ZB_ZCL_STATUS_SUCCESS && s_window_covering_cmd_cb) {
+            ESP_LOGI(TAG, "Window covering command ep=%u cmd=0x%04x", msg->info.dst_endpoint, msg->command);
+            s_window_covering_cmd_cb(msg->info.dst_endpoint, msg);
         }
         break;
     }
@@ -153,6 +172,22 @@ static void add_cluster_to_list(esp_zb_cluster_list_t *cluster_list, uint16_t cl
     } else if (cluster_id == 0x0500) {
         esp_zb_attribute_list_t *attr = esp_zb_ias_zone_cluster_create(NULL);
         esp_zb_cluster_list_add_ias_zone_cluster(cluster_list, attr, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    } else if (cluster_id == 0x0102) {
+        esp_zb_window_covering_cluster_cfg_t cfg = {
+            .covering_type = ESP_ZB_ZCL_ATTR_WINDOW_COVERING_TYPE_ROLLERSHADE,
+            .covering_status = ESP_ZB_ZCL_WINDOW_COVERING_CONFIG_STATUS_DEFAULT_VALUE,
+            .covering_mode = 0,
+        };
+        esp_zb_attribute_list_t *attr = esp_zb_window_covering_cluster_create(&cfg);
+        uint8_t unknown_position = ESP_ZB_ZCL_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_DEFAULT_VALUE;
+        if (esp_zb_window_covering_cluster_add_attr(attr,
+                ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
+                &unknown_position) != ESP_OK) {
+            esp_zb_cluster_update_attr(attr,
+                ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
+                &unknown_position);
+        }
+        esp_zb_cluster_list_add_window_covering_cluster(cluster_list, attr, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     } else if (cluster_id == 0x000C) {
         esp_zb_analog_input_cluster_cfg_t ai_cfg = {
             .out_of_service = false,
@@ -297,6 +332,27 @@ static void zigbee_main_task(void *arg)
     }
 
     s_zb_started = true;
+    /* MQTT may deliver retained WB Position before the Zigbee stack is ready.
+       Apply the latest cached position now that endpoints are registered. */
+    for (unsigned ep = 1; ep < 256; ep++) {
+        if (s_pending_covering_position_valid[ep]) {
+            uint8_t position = s_pending_covering_position[ep];
+            if (esp_zb_lock_acquire(portMAX_DELAY)) {
+                esp_zb_zcl_status_t status = esp_zb_zcl_set_attribute_val(
+                    ep, 0x0102, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                    ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
+                    &position, false);
+                esp_zb_lock_release();
+                if (status == ESP_ZB_ZCL_STATUS_SUCCESS) {
+                    s_pending_covering_position_valid[ep] = false;
+                } else {
+                    ESP_LOGW(TAG, "Could not restore Window Covering position for ep=%u: %d", ep, status);
+                }
+            } else {
+                ESP_LOGW(TAG, "Could not lock Zigbee stack to restore Window Covering position for ep=%u", ep);
+            }
+        }
+    }
     esp_zb_stack_main_loop();   /* blocks here — runs the Zigbee host loop */
     vTaskDelete(NULL);
 }
@@ -465,4 +521,23 @@ esp_err_t zigbee_coordinator_set_level(uint8_t endpoint_id, uint8_t level)
 {
     ESP_LOGI(TAG, "Set level ep=%d: %u", endpoint_id, level);
     return set_attr(endpoint_id, 0x0008, 0x0000, &level);
+}
+
+esp_err_t zigbee_coordinator_add_window_covering_endpoint(uint8_t endpoint_id)
+{
+    uint16_t clusters[] = {0x0102};
+    return create_endpoint(endpoint_id, ESP_ZB_HA_WINDOW_COVERING_DEVICE_ID, clusters, 1);
+}
+
+esp_err_t zigbee_coordinator_set_window_covering_position(uint8_t endpoint_id, uint8_t zigbee_percent)
+{
+    if (zigbee_percent > 100) zigbee_percent = 100;
+    ESP_LOGI(TAG, "Set window covering position ep=%u: %u%%", endpoint_id, zigbee_percent);
+    if (!s_zb_started) {
+        s_pending_covering_position[endpoint_id] = zigbee_percent;
+        s_pending_covering_position_valid[endpoint_id] = true;
+        return ESP_OK;
+    }
+    return set_attr(endpoint_id, 0x0102,
+        ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID, &zigbee_percent);
 }

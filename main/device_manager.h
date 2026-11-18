@@ -16,6 +16,7 @@ esp_err_t device_manager_add_device(uint8_t endpoint_id, const char *device_type
 esp_err_t device_manager_remove_device(uint8_t endpoint_id);
 esp_err_t device_manager_get_all_devices(char *json_buffer, size_t buffer_size);
 esp_err_t device_manager_handle_mqtt_message(const char *topic, const char *payload);
+esp_err_t device_manager_handle_window_covering_command(uint8_t endpoint_id, const void *message);
 esp_err_t device_manager_handle_zigbee_attribute(uint8_t endpoint_id, uint16_t cluster,
                                                    uint16_t attr_id, const void *value,
                                                    uint16_t size, uint8_t data_type);

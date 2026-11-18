@@ -94,6 +94,11 @@ static void mqtt_message_bridge(const char *topic, const char *data, int len)
 }
 
 /* Bridge: Zigbee attribute reports → device_manager (avoids circular component dep). */
+static void zigbee_window_covering_cmd_bridge(uint8_t endpoint_id, const void *message)
+{
+    device_manager_handle_window_covering_command(endpoint_id, message);
+}
+
 static void zigbee_attr_bridge(uint8_t endpoint_id, uint16_t cluster, uint16_t attr_id,
                                 const void *value, uint16_t size, uint8_t data_type)
 {
@@ -228,6 +233,7 @@ void app_main(void)
     mqtt_client_set_message_handler(mqtt_message_bridge);
     mqtt_client_set_connect_callback(mqtt_connect_callback);
     zigbee_coordinator_set_attr_report_callback(zigbee_attr_bridge);
+    zigbee_coordinator_set_window_covering_cmd_callback(zigbee_window_covering_cmd_bridge);
     zigbee_coordinator_set_network_join_callback(zigbee_join_bridge);
 
     wifi_manager_register_events(wifi_event_handler);

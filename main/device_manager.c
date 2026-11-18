@@ -147,6 +147,10 @@ esp_err_t device_manager_add_device(uint8_t endpoint_id, const char *device_type
             strcpy(slash + 1, "+");
         }
         mqtt_client_subscribe(base, 0);
+    } else if (strcmp(device_type, "wb_window_covering") == 0) {
+        /* WB publishes the current control value on the control topic itself.
+         * Subscribe to it so Position changes are reflected in Zigbee. */
+        mqtt_client_subscribe(topic, 1);
     } else
     // Subscribe to MQTT command topic for writable (actuator) devices
     if (!driver->iface->readonly) {
@@ -217,7 +221,14 @@ esp_err_t device_manager_handle_mqtt_message(const char *topic, const char *payl
         char full_topic[160] = {0};
         snprintf(full_topic, sizeof(full_topic), "%s/set", s_devices[i].topic);
 
-        if (strcmp(topic, s_devices[i].topic) == 0 || strcmp(topic, full_topic) == 0) {
+        bool topic_match = (strcmp(topic, s_devices[i].topic) == 0);
+        /* Window-covering state must come from the WB control topic itself,
+         * never from a synthetic /set command topic. */
+        if (strcmp(s_devices[i].device_type, "wb_window_covering") != 0 &&
+            strcmp(topic, full_topic) == 0) {
+            topic_match = true;
+        }
+        if (topic_match) {
             if (s_devices[i].driver && s_devices[i].driver->iface->handle_mqtt) {
                 s_devices[i].driver->iface->handle_mqtt(payload, s_devices[i].device_data);
                 return ESP_OK;
@@ -225,6 +236,20 @@ esp_err_t device_manager_handle_mqtt_message(const char *topic, const char *payl
         }
     }
     return handled ? ESP_OK : ESP_ERR_NOT_FOUND;
+}
+
+esp_err_t device_manager_handle_window_covering_command(uint8_t endpoint_id, const void *message)
+{
+    for (int i = 0; i < MAX_DEVICES; i++) {
+        device_entry_t *dev = &s_devices[i];
+        if (!dev->active || dev->endpoint_id != endpoint_id) continue;
+        if (strcmp(dev->device_type, "wb_window_covering") != 0) return ESP_OK;
+        if (dev->driver && dev->driver->iface->handle_zigbee)
+            return dev->driver->iface->handle_zigbee((void *)message, dev->device_data);
+        return ESP_OK;
+    }
+    ESP_LOGD(TAG, "No window covering device for endpoint %u", endpoint_id);
+    return ESP_ERR_NOT_FOUND;
 }
 
 esp_err_t device_manager_handle_zigbee_attribute(uint8_t endpoint_id, uint16_t cluster,

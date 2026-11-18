@@ -9,6 +9,7 @@ idf_component_register(
         "driver_wb_switch.c"
         "driver_wb_sensor.c"
         "driver_wb_range.c"
+        "driver_wb_window_covering.c"
         "driver_wb_text.c"
         "driver_z2m.c"
     INCLUDE_DIRS "."
