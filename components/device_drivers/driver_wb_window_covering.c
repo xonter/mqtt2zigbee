@@ -37,8 +37,10 @@ static esp_err_t wb_window_covering_handle_mqtt(const char *payload, void *devic
 {
     wb_window_covering_data_t *data = device_data;
     if (!data || !payload) return ESP_ERR_INVALID_ARG;
+    while (*payload == ' ' || *payload == '\\t' || *payload == '\\r' || *payload == '\\n') payload++;
     char *end = NULL;
     float value = strtof(payload, &end);
+    while (*end == ' ' || *end == '\\t' || *end == '\\r' || *end == '\\n') end++;
     if (end == payload || *end != '\0' || !isfinite(value) || value < 0.0f || value > 100.0f) {
         ESP_LOGW(TAG, "Ignoring invalid WB position: %s", payload);
         return ESP_OK;
