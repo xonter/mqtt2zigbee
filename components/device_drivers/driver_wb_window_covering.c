@@ -21,7 +21,7 @@ static void wb_window_covering_set_topic(void *device_data, const char *topic)
     wb_window_covering_data_t *data = device_data;
     if (data && topic) {
         strncpy(data->position_topic, topic, sizeof(data->position_topic) - 1);
-        data->position_topic[sizeof(data->position_topic) - 1] = '\\0';
+        data->position_topic[sizeof(data->position_topic) - 1] = '\0';
     }
 }
 
