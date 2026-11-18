@@ -126,7 +126,9 @@ Open, Close, and Stop command topics from that control path.
 
 The position scale is translated between Wiren Board (100 = fully open) and Zigbee
 Window Covering (0 = fully open). The endpoint exposes a single lift axis; tilt and
-motor configuration controls are intentionally not exposed.
+motor configuration controls are intentionally not exposed. After changing the driver
+or its topic, restart the gateway and re-pair the device with the Zigbee hub if the
+hub has cached the old endpoint definition.
 
 ## First run
 
