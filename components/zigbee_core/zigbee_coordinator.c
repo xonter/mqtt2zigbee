@@ -20,6 +20,8 @@ static zigbee_attr_report_cb_t  s_attr_report_cb  = NULL;
 static zigbee_network_join_cb_t s_network_join_cb = NULL;
 static zigbee_window_covering_cmd_cb_t s_window_covering_cmd_cb = NULL;
 static bool s_zb_started = false;
+static uint8_t s_pending_covering_position[256];
+static bool s_pending_covering_position_valid[256];
 static void (*s_endpoint_setup_cb)(void) = NULL;
 
 /* Per-endpoint Basic cluster identity set by zigbee_coordinator_set_basic_info()
@@ -330,6 +332,19 @@ static void zigbee_main_task(void *arg)
     }
 
     s_zb_started = true;
+    /* MQTT may deliver retained WB Position before the Zigbee stack is ready.
+       Apply the latest cached position now that endpoints are registered. */
+    for (unsigned ep = 1; ep < 256; ep++) {
+        if (s_pending_covering_position_valid[ep]) {
+            uint8_t position = s_pending_covering_position[ep];
+            esp_zb_lock_acquire(portMAX_DELAY);
+            esp_zb_zcl_set_attribute_val(ep, 0x0102, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
+                &position, false);
+            esp_zb_lock_release();
+            s_pending_covering_position_valid[ep] = false;
+        }
+    }
     esp_zb_stack_main_loop();   /* blocks here — runs the Zigbee host loop */
     vTaskDelete(NULL);
 }
@@ -510,6 +525,11 @@ esp_err_t zigbee_coordinator_set_window_covering_position(uint8_t endpoint_id, u
 {
     if (zigbee_percent > 100) zigbee_percent = 100;
     ESP_LOGI(TAG, "Set window covering position ep=%u: %u%%", endpoint_id, zigbee_percent);
+    if (!s_zb_started) {
+        s_pending_covering_position[endpoint_id] = zigbee_percent;
+        s_pending_covering_position_valid[endpoint_id] = true;
+        return ESP_OK;
+    }
     return set_attr(endpoint_id, 0x0102,
         ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID, &zigbee_percent);
 }
