@@ -39,7 +39,7 @@ static esp_err_t wb_window_covering_handle_mqtt(const char *payload, void *devic
     if (!data || !payload) return ESP_ERR_INVALID_ARG;
     char *end = NULL;
     float value = strtof(payload, &end);
-    if (end == payload || *end != '\\0' || !isfinite(value) || value < 0.0f || value > 100.0f) {
+    if (end == payload || *end != '\0' || !isfinite(value) || value < 0.0f || value > 100.0f) {
         ESP_LOGW(TAG, "Ignoring invalid WB position: %s", payload);
         return ESP_OK;
     }
