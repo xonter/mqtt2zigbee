@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "esp_log.h"
 #include "device_driver.h"
 #include "mqtt_client_wrapper.h"
@@ -38,7 +39,7 @@ static esp_err_t wb_window_covering_handle_mqtt(const char *payload, void *devic
     if (!data || !payload) return ESP_ERR_INVALID_ARG;
     char *end = NULL;
     float value = strtof(payload, &end);
-    if (end == payload || value < 0.0f || value > 100.0f) {
+    if (end == payload || *end != '\\0' || !isfinite(value) || value < 0.0f || value > 100.0f) {
         ESP_LOGW(TAG, "Ignoring invalid WB position: %s", payload);
         return ESP_OK;
     }
@@ -70,6 +71,13 @@ static esp_err_t wb_window_covering_handle_zigbee(void *zcl_cmd, void *device_da
         control = "Position";
         snprintf(value, sizeof(value), "%u", 100 - (cmd->payload.percentage_lift_value > 100 ? 100 : cmd->payload.percentage_lift_value));
         break;
+    case ESP_ZB_ZCL_CMD_WINDOW_COVERING_GO_TO_LIFT_VALUE: {
+        /* Default physical limits are 0 (open) to 0xffff (closed). */
+        uint32_t closed_percent = ((uint32_t)cmd->payload.lift_value * 100U + 32767U) / 65535U;
+        control = "Position";
+        snprintf(value, sizeof(value), "%u", 100U - closed_percent);
+        break;
+    }
     default:
         ESP_LOGW(TAG, "Unsupported window covering command 0x%04x", cmd->command);
         return ESP_OK;
