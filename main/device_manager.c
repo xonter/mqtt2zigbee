@@ -227,6 +227,20 @@ esp_err_t device_manager_handle_mqtt_message(const char *topic, const char *payl
     return handled ? ESP_OK : ESP_ERR_NOT_FOUND;
 }
 
+esp_err_t device_manager_handle_window_covering_command(uint8_t endpoint_id, const void *message)
+{
+    for (int i = 0; i < MAX_DEVICES; i++) {
+        device_entry_t *dev = &s_devices[i];
+        if (!dev->active || dev->endpoint_id != endpoint_id) continue;
+        if (strcmp(dev->device_type, "wb_window_covering") != 0) return ESP_OK;
+        if (dev->driver && dev->driver->iface->handle_zigbee)
+            return dev->driver->iface->handle_zigbee((void *)message, dev->device_data);
+        return ESP_OK;
+    }
+    ESP_LOGD(TAG, "No window covering device for endpoint %u", endpoint_id);
+    return ESP_ERR_NOT_FOUND;
+}
+
 esp_err_t device_manager_handle_zigbee_attribute(uint8_t endpoint_id, uint16_t cluster,
                                                    uint16_t attr_id, const void *value,
                                                    uint16_t size, uint8_t data_type)
