@@ -177,9 +177,13 @@ static void add_cluster_to_list(esp_zb_cluster_list_t *cluster_list, uint16_t cl
         };
         esp_zb_attribute_list_t *attr = esp_zb_window_covering_cluster_create(&cfg);
         uint8_t unknown_position = ESP_ZB_ZCL_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_DEFAULT_VALUE;
-        esp_zb_window_covering_cluster_add_attr(attr,
-            ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
-            &unknown_position);
+        if (esp_zb_window_covering_cluster_add_attr(attr,
+                ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
+                &unknown_position) != ESP_OK) {
+            esp_zb_cluster_update_attr(attr,
+                ESP_ZB_ZCL_ATTR_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE_ID,
+                &unknown_position);
+        }
         esp_zb_cluster_list_add_window_covering_cluster(cluster_list, attr, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     } else if (cluster_id == 0x000C) {
         esp_zb_analog_input_cluster_cfg_t ai_cfg = {
