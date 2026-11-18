@@ -17,7 +17,7 @@ relays and sensors — without any extra gateway software.
 ## Features
 
 - One Zigbee **router** node with many endpoints: switches, lights (on/off + level),
-  temperature, humidity, pressure, contact and analog sensors.
+  roller blinds (native Window Covering cluster), temperature, humidity, pressure, contact and analog sensors.
 - **MQTT discovery** page in the web UI with three sources:
   - *Wirenboard* — WB devices without the built-in ones (`system`, `network`, `wb-gpio`, ...);
   - *Wirenboard with built-ins*;
@@ -117,6 +117,16 @@ firmware binaries.
 pip install esptool
 esptool.py --chip esp32c6 -p /dev/ttyACM0 write_flash 0x0 mqtt2zigbee-<version>-merged.bin
 ```
+
+## Wiren Board roller blinds
+
+Select the **WB Window Covering** driver and use the blind's Position control topic
+(for example, `/devices/dooya_0x0101/controls/Position`). The driver derives the
+Open, Close, and Stop command topics from that control path.
+
+The position scale is translated between Wiren Board (100 = fully open) and Zigbee
+Window Covering (0 = fully open). The endpoint exposes a single lift axis; tilt and
+motor configuration controls are intentionally not exposed.
 
 ## First run
 
